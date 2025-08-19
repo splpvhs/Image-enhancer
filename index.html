@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur de Photos</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>Éditeur de Photos</h1>
+    <p>Téléversez une image (JPEG ou PNG) pour commencer.</p>
+
+    <div class="editor-container">
+        <div class="controls">
+            <input type="file" id="upload" accept="image/jpeg, image/png">
+
+            <label for="contrast">Contraste:</label>
+            <input type="range" id="contrast" min="0" max="200" value="100">
+
+            <label for="brightness">Luminosité:</label>
+            <input type="range" id="brightness" min="0" max="200" value="100">
+
+            <label for="saturation">Saturation:</label>
+            <input type="range"id="saturation" min="0" max="200" value="100">
+
+            <button id="apply">Appliquer</button>
+            <button id="download" disabled>Télécharger</button>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
