@@ -19,6 +19,7 @@ const brightnessSlider = document.getElementById('brightness');
 const saturationSlider = document.getElementById('saturation');
 
 const applyButton = document.getElementById('apply');
+const enhanceButton = document.getElementById('enhance');
 const downloadButton = document.getElementById('download');
 
 let originalImage = null;
@@ -100,6 +101,89 @@ applyButton.addEventListener('click', () => {
 
     resetFilters();
 });
+
+// 5. Améliorer la qualité avec un filtre de netteté (Sharpen)
+/* Explication de l'algorithme de netteté :
+ * Cette fonction utilise une "matrice de convolution". C'est une technique de traitement d'image
+ * qui modifie la valeur d'un pixel en fonction de la valeur de ses voisins.
+ * La matrice (ou "noyau") utilisée ici est un filtre passe-haut classique qui accentue les bords.
+ *   [ 0, -1,  0]
+ *   [-1,  5, -1]
+ *   [ 0, -1,  0]
+ * Pour chaque pixel, on multiplie sa valeur et celles de ses voisins par les valeurs correspondantes
+ * dans la matrice et on additionne les résultats. Le résultat remplace la valeur du pixel central.
+ * Le fait que la somme des valeurs de la matrice est 1 (5 - 4*1) assure que la luminosité globale
+ * de l'image est préservée.
+ */
+enhanceButton.addEventListener('click', () => {
+    if (!currentImage) return;
+
+    // Désactiver les filtres de prévisualisation pour ne pas les appliquer deux fois
+    const currentFilter = canvas.style.filter;
+    canvas.style.filter = 'none';
+
+    // Appliquer le filtre de netteté
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const sharpenedData = applyConvolution(imageData, [
+        [0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0]
+    ]);
+
+    ctx.putImageData(sharpenedData, 0, 0);
+
+    // Mettre à jour l'image actuelle pour les futures modifications
+    const newImage = new Image();
+    newImage.onload = () => {
+        currentImage = newImage;
+        // Rétablir les filtres de prévisualisation s'il y en avait
+        canvas.style.filter = currentFilter;
+    };
+    newImage.src = canvas.toDataURL();
+});
+
+function applyConvolution(imageData, kernel) {
+    const src = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+
+    // Créer une copie des données de pixels pour le résultat.
+    // Cela préserve les pixels des bords et nous permet de lire depuis `src`
+    // tout en écrivant dans `outputData` sans conflit.
+    const outputData = new Uint8ClampedArray(src);
+
+    const kernelSize = kernel.length;
+    const halfKernel = Math.floor(kernelSize / 2);
+
+    // Parcourir chaque pixel de l'image, sauf les bords
+    for (let y = halfKernel; y < height - halfKernel; y++) {
+        for (let x = halfKernel; x < width - halfKernel; x++) {
+            let r = 0, g = 0, b = 0;
+
+            // Appliquer le noyau de convolution
+            for (let ky = 0; ky < kernelSize; ky++) {
+                for (let kx = 0; kx < kernelSize; kx++) {
+                    const K = kernel[ky][kx];
+                    if (K === 0) continue; // Optimisation
+
+                    const pixelY = y + ky - halfKernel;
+                    const pixelX = x + kx - halfKernel;
+                    const index = (pixelY * width + pixelX) * 4;
+
+                    r += src[index] * K;
+                    g += src[index + 1] * K;
+                    b += src[index + 2] * K;
+                }
+            }
+
+            const dstIndex = (y * width + x) * 4;
+            outputData[dstIndex] = r;     // Le Uint8ClampedArray gère le bornage (clamping) entre 0 et 255
+            outputData[dstIndex + 1] = g;
+            outputData[dstIndex + 2] = b;
+        }
+    }
+    return new ImageData(outputData, width, height);
+}
 
 
 // Fonction pour réinitialiser les curseurs et la prévisualisation
